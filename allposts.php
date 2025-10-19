@@ -29,6 +29,7 @@ if (isset($_POST['backToProfile'])) {
     <link rel="stylesheet"
         href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
 
+
     <style>
         body {
             background: #f8f9fa;
@@ -47,12 +48,33 @@ if (isset($_POST['backToProfile'])) {
             background: #f1f3f5;
             padding: 10px;
             border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .comment {
+            background: #ffffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .comment p {
+            margin: 0;
+            font-size: 0.9rem;
         }
 
         .likes {
             font-weight: bold;
             color: #007bff;
         }
+
+        .posted-by {
+            font-size: 0.85rem;
+            color: #555;
+        }
+    </style>
+
     </style>
 </head>
 
@@ -111,13 +133,14 @@ if (isset($_POST['backToProfile'])) {
                             if ($commentResult && $commentResult->num_rows > 0) {
                                 $commentData = $commentResult->fetch_all(MYSQLI_ASSOC);
                                 foreach ($commentData as $commentObject) {
-                                    echo "<p>• " . $commentObject['body'] . "</p>";
+                                    echo "<div class='comment'><p>" . htmlspecialchars($commentObject['body']) . "</p></div>";
                                 }
                             } else {
                                 echo "<p>No Comments Yet</p>";
                             }
                             ?>
                         </div>
+
                         <p class="text-muted mt-2">Posted by: <strong><?= $userName ?></strong></p>
                     </div>
                 </div>

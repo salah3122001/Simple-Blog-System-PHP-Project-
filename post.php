@@ -21,7 +21,6 @@ if (isset($_POST['allposts'])) {
     exit();
 }
 
-
 $post = new Post;
 $like = new Like;
 $comment = new Comment;
@@ -40,6 +39,48 @@ $commRequired = '';
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+
+        .table {
+            background: #ffffff;
+        }
+
+        .comment-box {
+            background: #f1f3f5;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 5px;
+        }
+
+        .comment {
+            background: #ffffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .comment p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .comment-actions button {
+            margin-left: 5px;
+        }
+
+        .likes {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
 </head>
 
 <body class="bg-light">
@@ -51,7 +92,6 @@ $commRequired = '';
             <button name="show" class="btn btn-info">Show My Posts</button>
             <button name="allposts" class="btn btn-success">See All Posts</button>
             <button name="backToProfile" class="btn btn-secondary">Back To Profile</button>
-
         </form>
 
         <?php
@@ -123,7 +163,6 @@ $commRequired = '';
             $post->setUserId($_SESSION['user']->id);
             $result = $post->read();
 
-
             if ($result && $result->num_rows > 0) {
                 $postResult = $result->fetch_all(MYSQLI_ASSOC);
             ?>
@@ -137,7 +176,7 @@ $commRequired = '';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($postResult as $key => $postObject) { ?>
+                        <?php foreach ($postResult as $postObject) { ?>
                             <tr>
                                 <td><?= $postObject['title'] ?></td>
                                 <td><?= $postObject['body'] ?></td>
@@ -146,28 +185,33 @@ $commRequired = '';
                                     $comment->setUserId($_SESSION['user']->id);
                                     $comment->setPostId($postObject['id']);
                                     $result = $comment->read();
-                                    if ($result and $result->num_rows > 0) {
-                                        $commentResult = $result->fetch_all(MYSQLI_ASSOC);
-                                        foreach ($commentResult as $key => $commentObject) {
-                                            echo "<div class='border rounded p-2 mb-2 bg-light'>";
-                                            echo $commentObject['body'];
                                     ?>
-                                            <form method='post' class="d-inline">
-                                                <input type="hidden" name="comment_id" value="<?= $commentObject['id'] ?>">
-                                                <input type="hidden" name="old_comment" value="<?= $commentObject['body'] ?>">
-                                                <button name='edit_comment' class='btn btn-sm btn-warning'>Edit Comment</button>
-                                            </form>
-                                            <form method='post' class="d-inline">
-                                                <input type="hidden" name="comment_id" value="<?= $commentObject['id'] ?>">
-                                                <button name='delete_comment' class='btn btn-sm btn-danger'>Delete Comment</button>
-                                            </form>
-                                    <?php
-                                            echo "</div>";
+                                    <div class="comment-box">
+                                        <?php
+                                        if ($result && $result->num_rows > 0) {
+                                            $commentResult = $result->fetch_all(MYSQLI_ASSOC);
+                                            foreach ($commentResult as $commentObject) {
+                                                echo "<div class='comment'>";
+                                                echo "<p>" . htmlspecialchars($commentObject['body']) . "</p>";
+                                                echo "<div class='comment-actions'>";
+                                        ?>
+                                                <form method='post' class="d-inline">
+                                                    <input type="hidden" name="comment_id" value="<?= $commentObject['id'] ?>">
+                                                    <input type="hidden" name="old_comment" value="<?= $commentObject['body'] ?>">
+                                                    <button name='edit_comment' class='btn btn-sm btn-warning'>Edit</button>
+                                                </form>
+                                                <form method='post' class="d-inline">
+                                                    <input type="hidden" name="comment_id" value="<?= $commentObject['id'] ?>">
+                                                    <button name='delete_comment' class='btn btn-sm btn-danger'>Delete</button>
+                                                </form>
+                                        <?php
+                                                echo "</div></div>";
+                                            }
+                                        } else {
+                                            echo "<p>No Comments Yet</p>";
                                         }
-                                    } else {
-                                        echo "No Comments Yet";
-                                    }
-                                    ?>
+                                        ?>
+                                    </div>
                                 </td>
                                 <td>
                                     <form action="" method="post" class="d-inline">
@@ -188,7 +232,7 @@ $commRequired = '';
                                         <input type="hidden" name="post_id" value="<?= $postObject['id'] ?>">
                                         <button name="like" class="btn btn-outline-primary btn-sm">Like</button>
                                     </form>
-                                    <span class="ml-2">
+                                    <span class="ml-2 likes">
                                         <?php
                                         $like->setPostId($postObject['id']);
                                         $likeCount = $like->countLikes();
@@ -213,7 +257,7 @@ $commRequired = '';
             }
         }
 
-        // update post
+        // update, delete, like, edit comment logic same as before
         if (isset($_POST['update'])) {
             $titleValidation = new Validation('Title', $_POST['newtitle'] ?? '');
             $bodyValidation = new Validation('Post', $_POST['newbody'] ?? '');
@@ -244,11 +288,11 @@ $commRequired = '';
                         <input type="hidden" name="post_id" value="<?= $_POST['post_id'] ?>">
                         <div class="form-group">
                             <input type="text" name="newtitle" class="form-control" placeholder="Write New Title Here"
-                                value="<?= isset($_POST['old_title']) ? $_POST['old_title'] : '' ?>">
+                                value="<?= $_POST['old_title'] ?? '' ?>">
                             <?= empty($titleRequired) ? '' : "<div class='alert alert-danger mt-2'>$titleRequired</div>" ?>
                         </div>
                         <div class="form-group">
-                            <textarea name="newbody" class="form-control" placeholder="Write Your New Post Here"><?= isset($_POST['old_body']) ? $_POST['old_body'] : '' ?></textarea>
+                            <textarea name="newbody" class="form-control" placeholder="Write Your New Post Here"><?= $_POST['old_body'] ?? '' ?></textarea>
                             <?= empty($bodyRequired) ? '' : "<div class='alert alert-danger mt-2'>$bodyRequired</div>" ?>
                         </div>
                         <button name="update" class="btn btn-primary">Update Post</button>
@@ -257,55 +301,40 @@ $commRequired = '';
             </div>
         <?php }
 
-        // delete post
         if (isset($_POST['delete'])) {
             $post->setId($_POST['post_id']);
-            $deleteResult = $post->delete();
-            if ($deleteResult) {
+            if ($post->delete()) {
                 $_SESSION['success'] = "<div class='alert alert-success'>Successfully Deleted</div>";
                 header("location:post.php");
                 exit();
-            } else {
-                echo "<div class='alert alert-danger'>Try Again Later</div>";
             }
         }
 
-        // like
         if (isset($_POST['like'])) {
             $like->setPostId($_POST['post_id']);
             $like->setUserId($_SESSION['user']->id);
             $existingLike = $like->checkUserLike();
             if ($existingLike) {
-                $result = $like->unlike();
-                if ($result) {
-                    $_SESSION['success'] = "<div class='alert alert-warning'>Like Removed Successfully</div>";
-                    header("location:post.php");
-                    exit();
-                }
+                $like->unlike();
+                $_SESSION['success'] = "<div class='alert alert-warning'>Like Removed Successfully</div>";
             } else {
-                $result = $like->like();
-                if ($result) {
-                    $_SESSION['success'] = "<div class='alert alert-success'>Like Added Successfully</div>";
-                    header("location:post.php");
-                    exit();
-                }
+                $like->like();
+                $_SESSION['success'] = "<div class='alert alert-success'>Like Added Successfully</div>";
             }
+            header("location:post.php");
+            exit();
         }
 
-        // update comment
         if (isset($_POST['update_comment'])) {
             $commValidation = new Validation('New Comment', $_POST['updated_comment']);
             $commRequired = $commValidation->required();
             if (empty($commRequired)) {
                 $comment->setId($_POST['comment_id']);
                 $comment->setBody($_POST['updated_comment']);
-                $result = $comment->update();
-                if ($result) {
+                if ($comment->update()) {
                     $_SESSION['success'] = "<div class='alert alert-success'>Comment Updated Successfully</div>";
                     header("location:post.php");
                     exit();
-                } else {
-                    echo "<div class='alert alert-danger'>Try Again Later</div>";
                 }
             }
         }
@@ -317,7 +346,7 @@ $commRequired = '';
                     <form method="post">
                         <input type="hidden" name="comment_id" value="<?= $_POST['comment_id'] ?>">
                         <input type="text" name="updated_comment" class="form-control mb-2"
-                            value="<?= isset($_POST['old_comment']) ? $_POST['old_comment'] : '' ?>">
+                            value="<?= $_POST['old_comment'] ?? '' ?>">
                         <?= empty($commRequired) ? '' : "<div class='alert alert-danger'>$commRequired</div>" ?>
                         <button name="update_comment" class="btn btn-primary">Update Comment</button>
                     </form>
@@ -325,16 +354,12 @@ $commRequired = '';
             </div>
         <?php }
 
-        // delete comment
         if (isset($_POST['delete_comment'])) {
             $comment->setId($_POST['comment_id']);
-            $result = $comment->delete();
-            if ($result) {
+            if ($comment->delete()) {
                 $_SESSION['success'] = "<div class='alert alert-danger'>Comment Deleted</div>";
                 header("location:post.php");
                 exit();
-            } else {
-                echo "<div class='alert alert-danger'>Try Again Later</div>";
             }
         }
         ?>
